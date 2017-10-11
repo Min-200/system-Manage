@@ -1,3 +1,5 @@
+一.supervisor
+
 注意:以下代码,命令和配置在ubuntu14.04LTS上实际测试,其他发行版或ubuntu其他版本仅供参考
 
 安装 
@@ -62,3 +64,40 @@ supervisorctl update，根据最新的配置文件，启动新配置或有改动
 supervisor启动和停止的日志文件存放在/var/log/supervisor/supervisord.log
 
 注意：显式用stop停止掉的进程，用reload或者update都不会自动重启
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+二.系统信息
+uname -a  查看linux内核版本信息
+cat /proc/version 查看内核版本
+cat /etc/issue   　查看系统版本
+locale -a          列出所有语系
+locale             当前环境变量中所有编码
+who                当前在线用户
+whoami             当前用户名
+logname            初始用户名
+dmesg              查看开机信息
+who -b　           系统启动时间
+lsmod              查看内核模块
+
+
+
+三.硬件信息
+more /proc/cpuinfo     查看cpu信息
+lscpu　　　　　　　　　　　.........
+dmidecode　　　　　　　　　全面的硬件信息
+lspci                   硬件信息
+lspci | grep RAID       查看是否支持RAID
+dmidecode | grep "Product Name"     服务器型号
+
