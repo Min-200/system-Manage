@@ -101,3 +101,22 @@ lspci                   硬件信息
 lspci | grep RAID       查看是否支持RAID
 dmidecode | grep "Product Name"     服务器型号
 
+
+
+四.系统命令
+
+top -u root   -u 显示特定用户的进程
+
+lsof意味着“列出所有打开的文件”。下面，lsof命令列出了tecmint用户打开的所有文件。
+lsof -u tecmint 
+
+
+last　
+
+  root@master:/home/gcpt# last gcpt
+  gcpt     tty7         :0               Mon Oct  9 15:08    gone - no logout
+  gcpt     tty7         :0               Mon Oct  9 14:22 - crash  (08:39)
+  gcpt     tty7         :0               Mon Oct  9 09:32 - down   (04:32)
+
+
+结束时间（still login in 还未退出  down 直到正常关机 crash 直到强制关机）
