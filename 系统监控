@@ -1,0 +1,484 @@
+# system-Manage
+一)概述:
+vmstat 
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 310596  24796 143780    0    0   933    89 1044  119  3 21 72  4  0
+ 
+1)procs:
+r:代表正在运行的进程数.
+b:代表处在不可屏蔽中断的进程数.
+2)memory:
+swpd:已使用swap的空间大小.
+free:空闲的内存.
+buff:内存中buffer的大小.
+cache:内存中cache的大小.
+3)swap
+si:从swap读出的内存,也就是主缺页,这个值是一个比率,即每秒读了多少KB.
+so:置换到swap的内存,这个值是一个比率,即每秒写了多少KB.
+4)io
+bi:从磁盘读数据,这个值是一个比率,即每秒读了多少BLOCK.
+bo:写数据到磁盘,这个值是一个比率,即每秒写了多少BLOCK.
+5)system
+in:每秒中断的次数.
+cs:每秒转换上下文的次数.
+6)
+us:用户态进程使用CPU的百分比.
+sy:内核态进程使用CPU的百分比.
+id:处于空闲的CPU百分比.
+wa:系统等待IO的CPU时间百分比.
+st:来自于一个虚拟机偷取的CPU时间的百分比.
+ 
+二)系统监控的实验:
+实例一,大量的算术运算
+本程序会进入一个死循环,不断的进行求平方根的操作,模拟大量的算术运算的环境.
+测试源程序如下:
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <stdlib.h>
+void
+run_status(void)
+{
+double pi = M_PI;
+double pisqrt;
+long i;
+while(1){
+pisqrt = sqrt(pi);
+}
+}
+int
+main (void)
+{
+run_status();
+exit(EXIT_SUCCESS);
+}
+gcc run.c -o run -lm
+./run&
+运行:
+vmstat 1
+注:我们的程序不断的进行算术运算,r的值由0变成了1,而cpu的用户态利用率也达到了100%.如下:
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 304592  25244 147800    0    0     0     0 1010   31  0  1 99  0  0
+ 0  0      0 304592  25244 147800    0    0     0     0 1020   37  0  0 100  0  0
+ 1  0      0 304592  25244 147800    0    0     0    36 1016   46 69  1 30  0  0
+ 1  0      0 304592  25244 147800    0    0     0     0 1067   56 100  0  0  0  0
+ 1  0      0 304592  25244 147800    0    0     0     0 1010   31 100  0  0  0  0
+
+实例二,大量的系统调用
+本脚本会进入一个死循环,不断的执行cd命令,从而模拟大量系统调用的环境
+测试脚本如下:
+#!/bin/bash
+while (true)
+do
+cd ;
+done
+chmod +x loop.sh
+./loop.sh
+运行:
+vmstat 1
+注:程序不断的调用cd命令,此时进程不断的进行上下文切换,所以cs的值会骤然提高,而cpu的内核态利用率也会达到98%左右.如下:
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 304592  25248 147804    0    0   111    15 1025  179 20 20 59  0  0
+ 0  0      0 304592  25248 147804    0    0     0     0 1013   36  0  0 100  0  0
+ 1  0      0 304592  25248 147816    0    0     0     0 1015  422  1 72 27  0  0
+ 2  0      0 304592  25248 147816    0    0     0     0 1012  544  3 97  0  0  0
+ 1  0      0 304592  25248 147816    0    0     0     0 1007  522  3 97  0  0  0
+ 1  0      0 304592  25248 147816    0    0     0    64 1015  523  3 97  0  0  0
+ 2  0      0 304592  25248 147816    0    0     0     0 1003  572  2 98  0  0  0
+ 1  0      0 304592  25248 147816    0    0     0     0 1012 1263  2 98  0  0  0
+ 1  0      0 304592  25248 147816    0    0     0     0 1006 1264  3 97  0  0  0
+ 1  0      0 304592  25248 147816    0    0     0     0 1015 1249  3 97  0  0  0
+
+实例三,大量的io操作
+我们用dd命令,从/dev/zero读数据,写入到/tmp/data文件中,如下:
+dd if=/dev/zero of=/tmp/data bs=1M count=1000
+运行:
+vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 302160  25868 149004    0    0    77   116 1027  151 14 17 69  0  0
+ 1  0      0 302160  25868 149004    0    0     0     0 1018   35  0  1 99  0  0
+ 3  0      0 134884  26032 311628    0    0     0 109872 1423  102  0 100  0  0  0
+ 1  0      0  14596  26148 428808    0    0     0 117208 1372  120  0 100  0  0  0
+ 1  0      0   6224  22908 440592    0    0     4 64944 1305  322  0 98  0  2  0
+ 1  0      0   5976  21836 441016    0    0     4 79072 1447  162  0 51  0 49  0
+ 0  2      0   5716  21956 439672    0    0     4 79016 1431  374  0 81  0 19  0
+ 2  2      0   6180  22044 438064    0    0     0 61432 1392  285  0 61  0 39  0
+ 2  2      0   6912  22104 436828    0    0     4 73980 1486  253  1 59  0 40  0
+ 0  4      0   5876  14132 448856    0    0     8 63784 1378  313  0 69  0 31  0
+ 0  2      4   5980   4140 457860    0    0     0 46756 1399  274  0 65  0 35  0
+ 1  3      4   6060   3892 457580    0    0     8 69876 1398  214  0 46  0 54  0
+ 1  4      4   6120   2872 457348    0    0     0 59920 1364  327  0 71  0 29  0
+ 
+注:dd不断的向磁盘写入数据,所以bo的值会骤然提高,而cpu的wait数值也变高,说明由于大量的IO操作,系统的瓶径出现在低速的设备上.
+由于对文件系统的写入操作,cache也从149004KB提高到了457348KB,又由于大量的写中断调用,in的值也从1018提高到1364.
+
+接下来我们还用dd命令,这回从/tmp/data文件读,写到/dev/null文件中,如下:
+dd if=/tmp/test1 of=/dev/null bs=1M
+运行:
+vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0     60   7056   2492 464560    0    0   177   517 1028  116 10 12 78  1  0
+ 0  0     60   7056   2492 464560    0    0     0     0 1006   32  0  0 100  0  0
+ 0  1     60   5768   2296 465032    0    4 94340     4 1514  252  0 65 17 18  0
+ 1  1     60   5876   2220 466032    0    0 150148    56 1770  306  0 93  0  7  0
+ 0  1     60   5792   2180 467152    0    0 98872     0 1598  281  0 81  0 19  0
+ 0  1     60   6308    988 469816    0   52 89556    52 1722  303  0 88  0 12  0
+ 2  1     60   5620   1004 470488    0    0 79052     0 1671  690  0 72  0 28  0
+ 0  1     60   6548   1028 469540    0    0 67392     4 1535  657  1 66  0 33  0
+ 1  1     60   5648   1060 470588    0    0 47408    16 1400  482  0 44  0 56  0
+ 0  1     60   6368   1088 469836    0    0 70212     0 1561  666  0 66  0 34  0
+注:dd不断的从/tmp/data磁盘文件中读取数据,所以bi的值会骤然变高,最后我们看到b(不可中断进程数)也由0变成了1.
+接下来我们继续用dd命令,把数据写到/dev/ram1里,如下:
+dd if=/dev/zero of=/dev/ram1 bs=1M count=16
+16+0 records in
+16+0 records out
+16777216 bytes (17 MB) copied, 0.0635522 seconds, 264 MB/s
+运行:
+vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0     60   6156   6256 466280    0    0   366   480 1029  111  9 11 79  1  0
+ 0  0     60   6156   6256 466280    0    0     0     0 1011   32  0  0 100  0  0
+ 0  0     60   6156   6256 466292    0    0    12     0 1031   65  0  3 96  1  0
+ 0  0     60   6156   6264 466284    0    0     0    48 1022   48  0  1 99  0  0
+ 0  0     60   6148  17920 454652    0    0     0     4 1021   81  0  8 92  0  0
+ 0  0     60   6148  17920 454652    0    0     0     0 1013   32  1  0 99  0  0
+ 0  0     60   6148  17920 454652    0    0     0     0 1016   36  0  1 99  0  0
+ 0  0     60   6148  17920 454652    0    0     0     0 1006   31  0  0 100  0  0
+ 0  0     60   6148  17920 454652    0    0     0     0 1026   42  0  0 100  0  0
+ 
+注:dd从/dev/zero读取数据,写入到/dev/ram1里面,由于/dev/ram1是设备节点,所以buff会增加.
+
+实例四:大量的占用内存
+本程序会不断分配内存,直到系统崩溃.
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+int main (int argc, char *argv[])
+{
+void *ptr;
+int n = 0;
+while (1){
+ptr = malloc(0x100000);
+if (ptr == NULL)
+break;
+memset(ptr, 1, 0x100000);
+printf("malloced %d MB\n", ++n);
+}
+pause();
+}
+gcc callmem.c -o callmem
+./callmem
+
+运行:
+vmstat 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0   7512  18796 451064    0    0   346   442 1028  105  8 10 81  1  0
+ 0  0      0   7512  18796 451064    0    0     0     0 1012   36  0  1 99  0  0
+ 2  0      0   6096  18704 417676    0    0     0     0 1042  169  0 88 12  0  0
+ 1  0      0   5896  18616 379356    0    0     0     0 1048  183  1 99  0  0  0
+ 1  0      0   6324  18532 340796    0    0     0    36 1043  215  1 99  0  0  0
+ 1  0      0   6376  18444 302372    0    0     0     0 1048  195  0 100  0  0  0
+ 1  0      0   6036  18384 264904    0    0     0     0 1040  187  1 99  0  0  0
+ 1  0      0   5784  18384 228560    0    0     0     0 1046  175  1 99  0  0  0
+ 1  0      0   6532  18372 190316    0    0     0     0 1041  188  1 99  0  0  0
+ 1  0      0   6084  18364 153804    0    0     0     0 1047  187  0 100  0  0  0
+ 1  0      0   6256  18368 115992    0    0     0    12 1041  195  1 99  0  0  0
+ 1  0      0   6580  17852  77868    0    0     0     0 1050  196  1 99  0  0  0
+ 1  1      0   4892  17304  39556    0    0     0     0 1044  157  0 100  0  0  0
+ 1  1      0   5252  17304  18676    0    0     0     0 1037   81  1 99  0  0  0
+ 1  0   9236   6156  16456   7580    0 9172     0  9196 1092  131  1 74  0 25  0
+ 1  0  56008   6860  16456   7620    0 46772     0 46772 1394  399  1 96  0  3  0
+ 2  1 103600   6488  16464   7600    0 47652     0 47668 1416  395  2 96  0  2  0
+ 1  1 162644   6580  16464   7536    0 59044     0 59044 1300  333  2 92  0  6  0
+ 1  0 197980   6408  16464   5876    0 35340     0 35340 1330  259  3 89  0  8  0
+ 2  4 230372   4920  16468   2876    0 32392     4 32392 1299  293  2 96  0  2  0
+ 2  2 269352   5824  16472   1304    0 38980   252 38980 1306  285  2 90  0  8  0
+ 2  2 305656   4936  16468   1392   88 36304   216 36304 1310  317  1 87  0 12  0
+ 3  5 361100   5136  16472   1352   96 55444    96 55456 1301  297  2 91  0  7  0
+ 5  3 404796   6820  16488   1760   96 43696   524 43696 1282  186  2 82  0 16  0
+注:我们看到cache迅速减少,而swpd迅速增加,这是因为系统为了分配给新的程序,而从cache(文件系统缓存)回收空间,当空间依然不足时,会用到swap空间.
+而于此同时,si/so也会增加,尤其是so,而swap属于磁盘空间,所以bo也会增加.
+最后:st这个值来自一个虚拟机偷到的时间,在Linux 2.6.11内核之前,没有这个值.
+ 
+实例五:又一个大量分配内存例子
+我们这个例子为了说明active/inactivte的作用,
+源程序如下:
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+int
+main (int argc, char *argv[])
+{
+        if (argc != 2)
+                exit (0);
+        size_t mb = strtoul(argv[1],NULL,0);
+        size_t nbytes = mb * 0x100000;
+        char *ptr = (char *) malloc(nbytes);
+        if (ptr == NULL){
+                perror("malloc");
+                exit (EXIT_FAILURE);
+        }
+        size_t i;
+        const size_t stride = sysconf(_SC_PAGE_SIZE);
+        for (i = 0;i < nbytes; i+= stride) {
+                ptr[i] = 0;
+        }
+        printf("allocated %d mb\n", mb);
+        pause();
+        return 0;
+}
+gcc act.c -o act -lrt
+./act 100
+运行:
+vmstat -a 1
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free  inact active   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 363868  79488  47724    5  160   291   504 1032   95  6  9 83  1  0
+ 0  0      0 363868  79488  47728    0    0     0     0 1010   32  0  0 100  0  0
+ 0  0      0 363868  79488  47728    0    0     0     0 1014   34  0  0 100  0  0
+ 1  0      0 333924  79492  77736    0    0     8    36 1014   44  0 75 24  1  0
+ 1  0      0 293252  79500 118388    0    0     0     0 1011   34  0 100  0  0  0
+ 0  0      0 261384  79500 150140    0    0     0     0 1009   36  0 78 22  0  0
+ 0  0      0 261384  79500 150192    0    0     0     0 1015   33  0  1 99  0  0
+ 0  0      0 261384  79500 150192    0    0     0     0 1008   30  0  0 100  0  0
+ 0  0      0 261384  79500 150192    0    0     0     0 1015   32  0  0 100  0  0
+ 0  0      0 363436  79500  47732    0    0     0    12 1018   45  0  2 98  0  0
+ 0  0      0 363436  79508  47732    0    0     0     0 1011   55  0  1 99  0  0
+ 0  0      0 363436  79508  47732    0    0     0     0 1008   29  0  0 100  0  0
+注:程序运行时系统给它分配了100MB的内存,所以此时的active从47728kb变到了150192kb.
+ 
+三)vmstat用法:
+查看系统已经fork了多少次
+vmstat -f
+processes 114688
+注:这个数据是从/proc/stat中的processes字段里取得的.
+查看内存的active和inactive
+vmstat -a
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu------
+ r  b   swpd   free  inact active   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 361952  80536  48396    5  140   255   441 1031   87  6  8 85  1  0
+注:inact和active的数据来自于/proc/meminfo.
+查看内存使用的详细信息
+vmstat -s
+       515600  total memory
+       154020  used memory
+        48396  active memory
+        80600  inactive memory
+       361580  free memory
+        46376  buffer memory
+        57352  swap cache
+      1052248  total swap
+            0  used swap
+      1052248  free swap
+        31352 non-nice user cpu ticks
+          167 nice user cpu ticks
+        43234 system cpu ticks
+       489636 idle cpu ticks
+         5509 IO-wait cpu ticks
+         1243 IRQ cpu ticks
+         1751 softirq cpu ticks
+            0 stolen cpu ticks
+      1451094 pages paged in
+      2514952 pages paged out
+         6822 pages swapped in
+       198826 pages swapped out
+      5905614 interrupts
+       498241 CPU context switches
+   1300715746 boot time
+       114723 forks
+注:这些信息的分别来自于/proc/meminfo,/proc/stat和/proc/vmstat.
+
+查看磁盘的读/写
+vmstat -d
+disk- ------------reads------------ ------------writes----------- -----IO------
+       total merged sectors      ms  total merged sectors      ms    cur    sec
+ram0       0      0       0       0      0      0       0       0      0      0
+ram1       0      0       0       0      0      0       0       0      0      0
+ram2       0      0       0       0      0      0       0       0      0      0
+ram3       0      0       0       0      0      0       0       0      0      0
+ram4       0      0       0       0      0      0       0       0      0      0
+ram5       0      0       0       0      0      0       0       0      0      0
+ram6       0      0       0       0      0      0       0       0      0      0
+ram7       0      0       0       0      0      0       0       0      0      0
+ram8       0      0       0       0      0      0       0       0      0      0
+ram9       0      0       0       0      0      0       0       0      0      0
+ram10      0      0       0       0      0      0       0       0      0      0
+ram11      0      0       0       0      0      0       0       0      0      0
+ram12      0      0       0       0      0      0       0       0      0      0
+ram13      0      0       0       0      0      0       0       0      0      0
+ram14      0      0       0       0      0      0       0       0      0      0
+ram15      0      0       0       0      0      0       0       0      0      0
+sda    26411  18657 2900913  144728  22982 605889 5030968 3128488      0    117
+hdc      143     94    1276     357      0      0       0       0      0      0
+fd0        0      0       0       0      0      0       0       0      0      0
+md0        0      0       0       0      0      0       0       0      0      0
+注:这些信息主要来自于/proc/diskstats.
+merged:表示一次来自于合并的写/读请求,一般系统会把多个连接/邻近的读/写请求合并到一起来操作.
+查看/dev/sda1磁盘的读/写
+vmstat -p /dev/sda1
+sda1          reads   read sectors  writes    requested writes
+               35215    2842778     430114    3440912
+               
+注:这些信息主要来自于/proc/diskstats
+reads:来自于这个分区的读的次数.
+read sectors:来自于这个分区的读扇区的次数.
+writes:来自于这个分区的写的次数.
+requested writes:来自于这个分区的写请求次数.
+
+查看系统的slab信息
+vmstat -m
+Cache                       Num  Total   Size  Pages
+rpc_buffers                   8      8   2048      2
+rpc_tasks                     8     20    192     20
+rpc_inode_cache               6      9    448      9
+ip_fib_alias                 14    113     32    113
+ip_fib_hash                  14    113     32    113
+fib6_nodes                   24    113     32    113
+ip6_dst_cache                16     30    256     15
+ndisc_cache                   1     20    192     20
+RAWv6                         4     11    704     11
+UDPv6                         2      6    640      6
+tw_sock_TCPv6                 0      0    128     30
+request_sock_TCPv6            0      0    128     30
+TCPv6                         3      3   1280      3
+dm_tio                        0      0     16    203
+dm_io                         0      0     20    169
+jbd_4k                        0      0   4096      1
+scsi_cmd_cache                1     12    320     12
+sgpool-128                   32     32   2048      2
+sgpool-64                    32     32   1024      4
+sgpool-32                    32     32    512      8
+sgpool-16                    32     45    256     15
+sgpool-8                     34     60    128     30
+scsi_io_context               0      0    104     37
+ext3_inode_cache          21829  21832    492      8
+ext3_xattr                   36     78     48     78
+journal_handle                2    169     20    169
+journal_head                 63     72     52     72
+revoke_table                  2    254     12    254
+revoke_record                 0      0     16    203
+uhci_urb_priv                 0      0     28    127
+UNIX                         56     63    448      9
+flow_cache                    0      0    128     30
+cfq_ioc_pool                  0      0     92     42
+cfq_pool                      0      0     96     40
+crq_pool                      0      0     44     84
+deadline_drq                 63    252     44     84
+as_arq                        0      0     56     67
+mqueue_inode_cache            1      7    576      7
+isofs_inode_cache             2     20    368     10
+hugetlbfs_inode_cache         1     11    340     11
+ext2_inode_cache              0      0    476      8
+ext2_xattr                    0      0     48     78
+dnotify_cache                 2    169     20    169
+Cache                       Num  Total   Size  Pages
+dquot                         0      0    128     30
+eventpoll_pwq                 1    101     36    101
+eventpoll_epi                 1     30    128     30
+inotify_event_cache           0      0     28    127
+inotify_watch_cache           1     92     40     92
+kioctx                        0      0    192     20
+kiocb                         0      0    128     30
+fasync_cache                  0      0     16    203
+shmem_inode_cache           239    243    436      9
+posix_timers_cache            0      0     88     44
+uid_cache                     5     59     64     59
+ip_mrt_cache                  0      0    128     30
+tcp_bind_bucket               7    203     16    203
+inet_peer_cache               0      0     64     59
+secpath_cache                 0      0     32    113
+xfrm_dst_cache                0      0    320     12
+ip_dst_cache                  5     15    256     15
+arp_cache                     2     20    192     20
+RAW                           2      7    512      7
+UDP                           8     14    512      7
+tw_sock_TCP                   0      0    128     30
+request_sock_TCP              0      0    128     30
+TCP                           6      7   1152      7
+blkdev_ioc                    6    127     28    127
+blkdev_queue                 20     20    956      4
+blkdev_requests             100    184    172     23
+biovec-256                    7      8   3072      2
+biovec-128                    7     10   1536      5
+biovec-64                     7     10    768      5
+biovec-16                     7     20    192     20
+biovec-4                      7     59     64     59
+biovec-1                     71    406     16    203
+bio                         342    390    128     30
+utrace_engine_cache           0      0     32    113
+utrace_cache                  0      0     32    113
+sock_inode_cache            104    110    384     10
+skbuff_fclone_cache          10     10    384     10
+skbuff_head_cache           120    120    192     20
+file_lock_cache               3     40     96     40
+Acpi-Operand                448    552     40     92
+Acpi-ParseExt                 0      0     44     84
+Acpi-Parse                    0      0     28    127
+Acpi-State                    0      0     44     84
+Cache                       Num  Total   Size  Pages
+Acpi-Namespace              337    338     20    169
+delayacct_cache              78     78     48     78
+taskstats_cache              19     53     72     53
+proc_inode_cache             19     99    356     11
+sigqueue                     17     27    144     27
+radix_tree_node            2319   2422    276     14
+bdev_cache                   23     28    512      7
+sysfs_dir_cache            2928   2940     44     84
+mnt_cache                    28     30    128     30
+inode_cache                 692    792    340     11
+dentry_cache              24563  24563    136     29
+filp                        830    980    192     20
+names_cache                   3      3   4096      1
+avc_node                     14     72     52     72
+selinux_inode_security      636    780     48     78
+key_jar                      11     30    128     30
+idr_layer_cache             100    116    136     29
+buffer_head                8996   9000     52     72
+mm_struct                    61     63    448      9
+vm_area_struct             1788   1932     84     46
+fs_cache                     59     59     64     59
+files_cache                  60     60    384     10
+signal_cache                 81     81    448      9
+sighand_cache                72     72   1344      3
+task_struct                  78     78   1360      3
+anon_vma                    794   1016     12    254
+pgd                          47     47   4096      1
+pid                          92    101     36    101
+size-131072(DMA)              0      0 131072      1
+size-131072                   0      0 131072      1
+size-65536(DMA)               0      0  65536      1
+size-65536                    1      1  65536      1
+size-32768(DMA)               0      0  32768      1
+size-32768                    1      1  32768      1
+size-16384(DMA)               0      0  16384      1
+size-16384                    1      1  16384      1
+size-8192(DMA)                0      0   8192      1
+size-8192                     0      0   8192      1
+size-4096(DMA)                0      0   4096      1
+size-4096                    92     92   4096      1
+size-2048(DMA)                0      0   2048      2
+size-2048                   234    234   2048      2
+size-1024(DMA)                0      0   1024      4
+Cache                       Num  Total   Size  Pages
+size-1024                   176    176   1024      4
+size-512(DMA)                 0      0    512      8
+size-512                    264    264    512      8
+size-256(DMA)                 0      0    256     15
+size-256                    300    300    256     15
+size-128(DMA)                 0      0    128     30
+size-128                   1200   1200    128     30
+size-64(DMA)                  0      0     64     59
+size-32(DMA)                  0      0     32    113
+size-64                    1013   1180     64     59
+size-32                    1856   1921     32    113
+kmem_cache                  140    150    256     15
+注:这组信息来自于/proc/slabinfo
+slab:由于内核会有许多小对象,这些对象构造销毁十分频繁,比如i-node,dentry,这些对象如果每次构建的时候就向内存要一个页(4kb),而其实只有几个字节,这样就会非常浪费,为了解决这个问题,就引入了一种新的机制来处理在同一个页框中如何分配小存储区,而slab可以对小对象进行分配,这样就不用为每一个对象分配页框,从而节省了空间,内核对一些小对象创建析构很频繁,slab对这些小对象进行缓冲,可以重复利用,减少内存分配次数.
