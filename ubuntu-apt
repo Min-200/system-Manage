@@ -1,0 +1,24 @@
+Ubuntu 执行apt-get update时 Problem executing scripts APT::Update: 错误
+Posted on	八月 17, 2017	by	ww1516123	· Leave a comment
+在执行ubuntu 更新源的时候,
+
+出现了如下的错误：
+
+Terminated
+Reading package lists… Done
+E: Problem executing scripts APT::Update::Post-Invoke-Success ‘if /usr/bin/test -w /var/cache/app-info -a -e /usr/bin/appstreamcli; then appstreamcli refresh > /dev/null; fi’
+E: Sub-process returned an error code
+
+开始以为是源的问题,后台发现不是。
+
+在google 之后 找到了解决办法
+
+https://bugs.launchpad.net/ubuntu/+source/appstream/+bug/1579712/comments/24
+
+cd /tmp && mkdir asfix
+cd asfix
+wget https://launchpad.net/ubuntu/+archive/primary/+files/appstream_0.9.4-1ubuntu1_amd64.deb
+wget https://launchpad.net/ubuntu/+archive/primary/+files/libappstream3_0.9.4-1ubuntu1_amd64.deb
+sudo dpkg -i *.deb
+
+执行完成时候 在update 就OK啦
