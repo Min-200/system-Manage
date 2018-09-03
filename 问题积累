@@ -1,1 +1,23 @@
 1.vmware 在网络配置使用桥接模式的话，会导致yum，wget命令无法使用，报错
+
+2.问题：vi/vim 编辑ANSI文本时，中文会显示乱码！
+
+解决方法：修改vi/vim配置文件，添加如下红色并加粗的部分！
+
+vi    配置文件路径：/etc/virc
+vim 配置文件路径：/etc/vimrc
+http://blog.rekfan.com/?p=247
+更改之前：
+
+if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
+set fileencodings=ucs-bom,utf-8,latin1,gbk
+endif
+
+更改之后：
+
+if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
+set fileencodings=ucs-bom,utf-8,latin1,gbk,cp936,gb2312
+set termencoding=utf-8
+set fileformats=unix
+set encoding=prc
+endif
